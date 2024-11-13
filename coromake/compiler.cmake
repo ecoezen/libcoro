@@ -28,3 +28,7 @@ elseif(MSVC)
         /W4
     )
 endif()
+
+if(UNIX)
+    target_link_libraries(${PROJECT_NAME} PUBLIC pthread)
+endif()
