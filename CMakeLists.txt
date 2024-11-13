@@ -6,13 +6,27 @@ project(libcoro
     DESCRIPTION "C++20 coroutine library"
 )
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(MACOSX TRUE)
-    # We need to build with clang >= 17, assuming its installed by
-    # brew. We also need to force linking to libc++.a
-    add_link_options(-L/usr/local/opt/llvm/lib)
-    link_libraries(-lc++)
-endif()
+add_library(${PROJECT_NAME})
+set_target_properties(${PROJECT_NAME} PROPERTIES 
+												LINKER_LANGUAGE CXX 
+												PREFIX 			"" 
+												VERSION			${PROJECT_VERSION} 
+												SOVERSION		${PROJECT_VERSION_MAJOR}
+												OUTPUT_NAME 	${PROJECT_NAME}
+                                                DEBUG_POSTFIX 	"_d")
+													
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
+
+include(coromake/platform.cmake)
+include(coromake/compiler.cmake)
+
+#if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    set(MACOSX TRUE)
+#    # We need to build with clang >= 17, assuming its installed by
+#    # brew. We also need to force linking to libc++.a
+#    add_link_options(-L/usr/local/opt/llvm/lib)
+#    link_libraries(-lc++)
+#endif()
 
 include(GNUInstallDirs)
 include(GenerateExportHeader)
@@ -69,84 +83,165 @@ endif()
 set(BUILD_SHARED_LIBS ${LIBCORO_BUILD_SHARED_LIBS} CACHE INTERNAL "")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ${LIBCORO_BUILD_SHARED_LIBS} CACHE INTERNAL "")
 
-set(LIBCORO_SOURCE_FILES
-    include/coro/concepts/awaitable.hpp
-    include/coro/concepts/buffer.hpp
-    include/coro/concepts/executor.hpp
-    include/coro/concepts/promise.hpp
-    include/coro/concepts/range_of.hpp
+set(CORO_INC include/coro)
+set(CORO_SRC src)
 
-    include/coro/detail/void_value.hpp
 
-    include/coro/attribute.hpp
-    include/coro/coro.hpp
-    include/coro/event.hpp src/event.cpp
-    include/coro/generator.hpp
-    include/coro/latch.hpp
-    include/coro/mutex.hpp src/mutex.cpp
-    include/coro/ring_buffer.hpp
-    include/coro/semaphore.hpp src/semaphore.cpp
-    include/coro/shared_mutex.hpp
-    include/coro/sync_wait.hpp src/sync_wait.cpp
-    include/coro/task.hpp
-    include/coro/task_container.hpp
-    include/coro/thread_pool.hpp src/thread_pool.cpp
-    include/coro/time.hpp
-    include/coro/when_all.hpp
-)
+set(LIBCORO_SOURCE_FILES)
 
-if(LIBCORO_FEATURE_NETWORKING)
-    list(APPEND LIBCORO_SOURCE_FILES
-        include/coro/detail/poll_info.hpp
+# Core concepts and traits
+set(LIBCORO_CORE_CONCEPTS_FILES
+										${CORO_INC}/concepts/awaitable.hpp
+										${CORO_INC}/concepts/buffer.hpp
+										${CORO_INC}/concepts/executor.hpp
+										${CORO_INC}/concepts/promise.hpp
+										${CORO_INC}/concepts/range_of.hpp)
 
-        include/coro/fd.hpp
-        include/coro/io_scheduler.hpp src/io_scheduler.cpp
-        include/coro/poll.hpp src/poll.cpp
-    )
+# Utils
+set(LIBCORO_CORE_UTILS_FILES
+										${CORO_INC}/attribute.hpp
+										${CORO_INC}/time.hpp
+										${CORO_INC}/ring_buffer.hpp
+										${CORO_INC}/detail/void_value.hpp)
 
-    list(APPEND LIBCORO_SOURCE_FILES
-        include/coro/net/dns/resolver.hpp src/net/dns/resolver.cpp
-        include/coro/net/connect.hpp src/net/connect.cpp
-        include/coro/net/hostname.hpp
-        include/coro/net/ip_address.hpp src/net/ip_address.cpp
-        include/coro/net/recv_status.hpp src/net/recv_status.cpp
-        include/coro/net/send_status.hpp src/net/send_status.cpp
-        include/coro/net/socket.hpp src/net/socket.cpp
-        include/coro/net/tcp/client.hpp src/net/tcp/client.cpp
-        include/coro/net/tcp/server.hpp src/net/tcp/server.cpp
-        include/coro/net/udp/peer.hpp src/net/udp/peer.cpp
-    )
+# Coroutine foundation
+set(LIBCORO_CORE_FOUNDATION_FILES
+										${CORO_INC}/coro.hpp
+										${CORO_INC}/task.hpp
+										${CORO_INC}/generator.hpp
+										${CORO_INC}/task_container.hpp)
+
+# Core synchronization primitives
+set(LIBCORO_CORE_SYNC_PRIMITIVES_FILES
+										${CORO_INC}/mutex.hpp               ${CORO_SRC}/mutex.cpp
+										${CORO_INC}/semaphore.hpp           ${CORO_SRC}/semaphore.cpp
+										${CORO_INC}/shared_mutex.hpp)
+
+# Coordination mechanisms
+set(LIBCORO_CORE_SYNC_COORDINATION_FILES
+										${CORO_INC}/event.hpp               ${CORO_SRC}/event.cpp
+										${CORO_INC}/latch.hpp
+										${CORO_INC}/sync_wait.hpp           ${CORO_SRC}/sync_wait.cpp
+										${CORO_INC}/when_all.hpp)
+
+# Threading and execution
+set(LIBCORO_CORE_EXECUTION_FILES
+										${CORO_INC}/thread_pool.hpp         ${CORO_SRC}/thread_pool.cpp)
+
+# Aggregate all core components
+set(LIBCORO_CORE_SOURCE_FILES
+										${LIBCORO_CORE_CONCEPTS_FILES}
+										${LIBCORO_CORE_UTILS_FILES}
+										${LIBCORO_CORE_FOUNDATION_FILES}
+										${LIBCORO_CORE_SYNC_PRIMITIVES_FILES}
+										${LIBCORO_CORE_SYNC_COORDINATION_FILES}
+										${LIBCORO_CORE_EXECUTION_FILES})
+										
+										
+										
+										
+list(APPEND LIBCORO_SOURCE_FILES ${LIBCORO_CORE_SOURCE_FILES})
+								
+
+set(NET_INC ${CORO_INC}/net)
+set(NET_SRC src/net)
+
+# Network Core
+set(LIBCORO_NETWORK_CORE_FILES
+										${NET_INC}/ip_address.hpp        ${NET_SRC}/ip_address.cpp
+										${NET_INC}/hostname.hpp
+										${NET_INC}/connect.hpp           ${NET_SRC}/connect.cpp)
+										
+# IO Foundation
+set(LIBCORO_NETWORK_IO_FILES
+										${CORO_INC}/detail/poll_info.hpp
+										${CORO_INC}/fd.hpp
+										${CORO_INC}/io_scheduler.hpp     ${CORO_SRC}/io_scheduler.cpp
+										${CORO_INC}/poll.hpp             ${CORO_SRC}/poll.cpp)
+
+
+										
+# Network Status
+set(LIBCORO_NETWORK_STATUS_FILES
+										${NET_INC}/recv_status.hpp       ${NET_SRC}/recv_status.cpp
+										${NET_INC}/send_status.hpp       ${NET_SRC}/send_status.cpp)
+# Protocol Implementations
+set(LIBCORO_NETWORK_PROTOCOLS_FILES
+										# TCP
+										${NET_INC}/tcp/client.hpp        ${NET_SRC}/tcp/client.cpp
+										${NET_INC}/tcp/server.hpp        ${NET_SRC}/tcp/server.cpp
+										# UDP
+										${NET_INC}/udp/peer.hpp         ${NET_SRC}/udp/peer.cpp
+										# Socket base
+										${NET_INC}/socket.hpp            ${NET_SRC}/socket.cpp)
+ # DNS
+set(LIBCORO_NETWORK_DNS_FILES
+										${NET_INC}/dns/resolver.hpp      ${NET_SRC}/dns/resolver.cpp)
+
+										
+set(LIBCORO_NETWORK_SOURCE_FILES 
+										${LIBCORO_NETWORK_CORE_FILES}
+										${LIBCORO_NETWORK_IO_FILES}
+										${LIBCORO_NETWORK_STATUS_FILES}
+										${LIBCORO_NETWORK_PROTOCOLS_FILES}
+										${LIBCORO_NETWORK_DNS_FILES})
+
+
+set(TLS_INC ${NET_INC}/tls)
+set(TLS_SRC ${NET_SRC}/tls)
+
+# TLS Core
+set(LIBCORO_NETWORK_TLS_CORE_FILES
+										${TLS_INC}/context.hpp        ${TLS_SRC}/context.cpp)
+
+# TLS Sockets
+set(LIBCORO_NETWORK_TLS_SOCKETS_FILES
+										${TLS_INC}/client.hpp         ${TLS_SRC}/client.cpp
+										${TLS_INC}/server.hpp         ${TLS_SRC}/server.cpp)
+
+# TLS Status
+set(LIBCORO_NETWORK_TLS_STATUS_FILES
+										${TLS_INC}/connection_status.hpp ${TLS_SRC}/connection_status.cpp
+										${TLS_INC}/recv_status.hpp    	 ${TLS_SRC}/recv_status.cpp
+										${TLS_INC}/send_status.hpp    	 ${TLS_SRC}/send_status.cpp)
+
+set(LIBCORO_NETWORK_TLS_SOURCE_FILES
+										${LIBCORO_NETWORK_TLS_CORE_FILES}
+										${LIBCORO_NETWORK_TLS_SOCKETS_FILES}
+										${LIBCORO_NETWORK_TLS_STATUS_FILES}	)
+
+
+if(LIBCORO_FEATURE_NETWORKING)	
+
+	list(APPEND LIBCORO_SOURCE_FILES ${LIBCORO_NETWORK_SOURCE_FILES})
 
     if(LIBCORO_FEATURE_TLS)
         find_package(OpenSSL REQUIRED)
-        list(APPEND LIBCORO_SOURCE_FILES
-            include/coro/net/tls/client.hpp src/net/tls/client.cpp
-            include/coro/net/tls/connection_status.hpp src/net/tls/connection_status.cpp
-            include/coro/net/tls/context.hpp src/net/tls/context.cpp
-            include/coro/net/tls/recv_status.hpp src/net/tls/recv_status.cpp
-            include/coro/net/tls/send_status.hpp src/net/tls/send_status.cpp
-            include/coro/net/tls/server.hpp src/net/tls/server.cpp
-        )
+		list(APPEND LIBCORO_SOURCE_FILES ${LIBCORO_NETWORK_TLS_SOURCE_FILES})
+
+
     endif()
 endif()
 
-if(DEFINED EMSCRIPTEN)
-    add_compile_options(-fwasm-exceptions)
-    add_compile_options(-pthread)
-    add_compile_options(-matomics)
 
-    add_link_options(-fwasm-exceptions)
-    add_link_options(-pthread)
-    add_link_options(-sPROXY_TO_PTHREAD)
-    add_link_options(-sALLOW_MEMORY_GROWTH)
-    add_link_options(-sEXIT_RUNTIME)
-endif()
+set(${PROJECT_NAME}_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/Generated)
 
-add_library(${PROJECT_NAME} ${LIBCORO_SOURCE_FILES})
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX PREFIX "" VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include)
-generate_export_header(${PROJECT_NAME} BASE_NAME CORO EXPORT_FILE_NAME include/coro/export.hpp)
+set(${PROJECT_NAME}_EXPORT_HEADER ${${PROJECT_NAME}_GENERATED_DIR}/include/coro/export.hpp)
+generate_export_header(${PROJECT_NAME} 
+							EXPORT_FILE_NAME 
+								${${PROJECT_NAME}_EXPORT_HEADER}								
+							BASE_NAME
+								CORO
+								)
+
+
+target_sources(${PROJECT_NAME} PRIVATE ${LIBCORO_SOURCE_FILES})
+target_include_directories(${PROJECT_NAME} PUBLIC 
+												$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include> 
+												$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+												$<BUILD_INTERFACE:${${PROJECT_NAME}_GENERATED_DIR}/include>
+
+												)
 
 if(UNIX)
     target_link_libraries(${PROJECT_NAME} PUBLIC pthread)
@@ -161,35 +256,6 @@ if(LIBCORO_FEATURE_NETWORKING)
     endif()
 endif()
 
-if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "10.2.0")
-        message(FATAL_ERROR "g++ version ${CMAKE_CXX_COMPILER_VERSION} is unsupported, please upgrade to at least 10.2.0")
-    endif()
-
-    target_compile_options(${PROJECT_NAME} PUBLIC
-        $<$<COMPILE_LANGUAGE:CXX>:-fcoroutines>
-        $<$<COMPILE_LANGUAGE:CXX>:-fconcepts>
-        $<$<COMPILE_LANGUAGE:CXX>:-fexceptions>
-        $<$<COMPILE_LANGUAGE:CXX>:-Wall>
-        $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
-        $<$<COMPILE_LANGUAGE:CXX>:-pipe>
-    )
-elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "16.0.0")
-        message(FATAL_ERROR "Clang version ${CMAKE_CXX_COMPILER_VERSION} is unsupported, please upgrade to at least 16.0.0")
-    endif()
-
-    target_compile_options(${PROJECT_NAME} PUBLIC
-        $<$<COMPILE_LANGUAGE:CXX>:-fexceptions>
-        $<$<COMPILE_LANGUAGE:CXX>:-Wall>
-        $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
-        $<$<COMPILE_LANGUAGE:CXX>:-pipe>
-    )
-elseif(MSVC)
-    target_compile_options(${PROJECT_NAME} PUBLIC
-        /W4
-    )
-endif()
 
 if(LIBCORO_BUILD_TESTS)
     if(LIBCORO_CODE_COVERAGE)
@@ -212,9 +278,78 @@ if(MSVC)
 else()
     string(REGEX REPLACE "^lib" "" target1 ${PROJECT_NAME})
 endif()
-configure_file(libcoro.pc.in libcoro.pc @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/coromake/libcoro.pc.in ${${PROJECT_NAME}_GENERATED_DIR}/libcoro.pc @ONLY)
 
-install(TARGETS libcoro)
-install(DIRECTORY include/coro TYPE INCLUDE)
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/coro TYPE INCLUDE)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libcoro.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+#install(TARGETS libcoro)
+#install(DIRECTORY include/coro TYPE INCLUDE)
+#install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/coro TYPE INCLUDE)
+#install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libcoro.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+include(GNUInstallDirs)  # Include GNUInstallDirs for standard installation directories
+# Install the library target
+install(TARGETS ${PROJECT_NAME}
+		EXPORT 	${PROJECT_NAME}-targets
+		RUNTIME DESTINATION 
+			${CMAKE_INSTALL_BINDIR}         
+		LIBRARY DESTINATION 
+			${CMAKE_INSTALL_LIBDIR}         
+		ARCHIVE DESTINATION 
+			${CMAKE_INSTALL_LIBDIR}         
+		INCLUDES DESTINATION 
+			${CMAKE_INSTALL_INCLUDEDIR}    
+)
+
+# Install header files
+install(DIRECTORY 
+			include/coro/
+		DESTINATION 
+			${CMAKE_INSTALL_INCLUDEDIR}/coro
+)
+
+install(FILES 
+			${${PROJECT_NAME}_EXPORT_HEADER}
+		DESTINATION 
+			${CMAKE_INSTALL_INCLUDEDIR}/coro
+)
+
+# Install the pkg-config file
+install(FILES ${${PROJECT_NAME}_GENERATED_DIR}/libcoro.pc
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+export(EXPORT ${PROJECT_NAME}-targets
+       FILE 
+            ${${PROJECT_NAME}_GENERATED_DIR}/cmake/${PROJECT_NAME}Targets.cmake
+       NAMESPACE
+            ${PROJECT_NAME}::
+)
+
+install(EXPORT ${PROJECT_NAME}-targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/../cmake
+
+)
+
+# Generate and install CMake configuration files
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    "${${PROJECT_NAME}_GENERATED_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION 
+		${PROJECT_VERSION}
+    COMPATIBILITY 
+		AnyNewerVersion
+)
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/coromake/Config.cmake.in"
+    "${${PROJECT_NAME}_GENERATED_DIR}/cmake/${PROJECT_NAME}Config.cmake"
+    @ONLY
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    "${${PROJECT_NAME}_GENERATED_DIR}/cmake/${PROJECT_NAME}Config.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/../cmake
+)
+
