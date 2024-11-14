@@ -8,6 +8,7 @@ project(libcoro
     DESCRIPTION "C++20 coroutine library"
 )
 
+include(platform.cmake)
 
 
 add_library(${PROJECT_NAME})
@@ -20,9 +21,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
                                                 DEBUG_POSTFIX 	"_d")
 													
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
-
-include(platform.cmake)
 include(compiler.cmake)
+
 
 #if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #    set(MACOSX TRUE)

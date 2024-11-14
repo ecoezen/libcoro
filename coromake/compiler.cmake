@@ -24,9 +24,7 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
         $<$<COMPILE_LANGUAGE:CXX>:-pipe>
     )
 elseif(MSVC)
-    target_compile_options(${PROJECT_NAME} PUBLIC
-        /W4
-    )
+    target_compile_options(${PROJECT_NAME} PUBLIC /W4)
 endif()
 
 if(UNIX)
