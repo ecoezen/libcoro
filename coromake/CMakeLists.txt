@@ -24,14 +24,6 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 include(compiler.cmake)
 
 
-#if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-#    set(MACOSX TRUE)
-#    # We need to build with clang >= 17, assuming its installed by
-#    # brew. We also need to force linking to libc++.a
-#    add_link_options(-L/usr/local/opt/llvm/lib)
-#    link_libraries(-lc++)
-#endif()
-
 include(GNUInstallDirs)
 include(GenerateExportHeader)
 message(STATUS "COROLIB_SOURCE_ROOT_DIR: ${COROLIB_SOURCE_ROOT_DIR}")
