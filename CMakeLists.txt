@@ -39,7 +39,7 @@ message("${PROJECT_NAME} LIBCORO_RUN_GITCONFIG         = ${LIBCORO_RUN_GITCONFIG
 message("${PROJECT_NAME} LIBCORO_BUILD_SHARED_LIBS     = ${LIBCORO_BUILD_SHARED_LIBS}")
 
 
-if(LIBCORO_FEATURE_NETWORKING)
+#if(LIBCORO_FEATURE_NETWORKING)
 
 set(ass $<$<BOOL:CMAKE_CONFIGURATION_TYPES>:--config $<CONFIG>>)
 # A helper function to evaluate the generator expression in a safe context
@@ -57,15 +57,12 @@ ExternalProject_Add(c-ares
 					GIT_REPOSITORY "https://github.com/c-ares/c-ares.git"
 					GIT_TAG "main"
 					GIT_SHALLOW TRUE
-					CMAKE_ARGS
+					CMAKE_CACHE_ARGS
 						-DCARES_SHARED:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,ON,OFF>
 						-DCARES_STATIC:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,OFF,ON>
 						-DCARES_STATIC_PIC:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,ON,OFF>
 						-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
 						-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}/c-ares/c-ares
-					#CONFIGURE_COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR} <SOURCE_DIR> 
-					#BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> $<$<BOOL:CMAKE_CONFIGURATION_TYPES>:--config $<CONFIG>> 
-					#INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target install $<$<BOOL:CMAKE_CONFIGURATION_TYPES>:--config $<CONFIG>> 
 					STEP_TARGETS download configure build install
 
 					LOG_DOWNLOAD ON
@@ -92,7 +89,7 @@ if(LIBCORO_FEATURE_TLS)
 	endif()
 endif()
 
-endif()
+#endif()
 
 
 
@@ -100,7 +97,6 @@ ExternalProject_Add(libcoro
 					PREFIX libcoro
 					SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coromake"
 					BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/libcoro"
-					#INSTALL_COMMAND ""
 					CMAKE_CACHE_ARGS
 						-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
 						-DLIBCORO_BUILD_SHARED_LIBS:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,ON,OFF>
@@ -110,42 +106,40 @@ ExternalProject_Add(libcoro
 						-DLIBCORO_FEATURE_TLS:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_TLS}>,ON,OFF>				
 						${CARES_DIRS}
 						${OpenSSL_DIRS}
-					STEP_TARGETS configure build install
-					
-						
-				  DEPENDS ${CARES_DEPENDENCY}
-
-)
+					STEP_TARGETS configure build install			
+					DEPENDS ${CARES_DEPENDENCY}
+					)
 
 ExternalProject_Add(libcoro_test
-  PREFIX libcoro_test
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test"
-  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/libcoro_test"
-  INSTALL_COMMAND ""
-  CMAKE_CACHE_ARGS
-			-Dlibcoro_DIR:PATH=${CMAKE_INSTALL_PREFIX}/../libcoro/lib/cmake
-			-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>
-			-DLIBCORO_FEATURE_TLS:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_TLS}>,ON,OFF>
-			-Dc-ares_DIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/c-ares/c-ares/lib/cmake/c-ares
-			-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_ROOT_DIR}			
-  DEPENDS libcoro
-)
+					PREFIX libcoro_test
+					SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test"
+					BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/libcoro_test"
+					CMAKE_CACHE_ARGS
+							-Dlibcoro_DIR:PATH=${CMAKE_INSTALL_PREFIX}/../libcoro/lib/cmake
+							-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>
+							-DLIBCORO_FEATURE_TLS:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_TLS}>,ON,OFF>
+							${CARES_DIRS}
+							${OpenSSL_DIRS}
+					INSTALL_COMMAND ""		
+					STEP_TARGETS configure build
+							
+					DEPENDS libcoro
+					)
 
 
 ExternalProject_Add(libcoro_examples
-  PREFIX libcoro_examples
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/examples"
-  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/libcoro_examples"
-  INSTALL_COMMAND ""
-  CMAKE_CACHE_ARGS
-			-Dlibcoro_DIR:PATH=${CMAKE_INSTALL_PREFIX}/../libcoro/lib/cmake
-			-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>
-			-DLIBCORO_FEATURE_TLS:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_TLS}>,ON,OFF>
-			-Dc-ares_DIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/c-ares/c-ares/lib/cmake/c-ares
-			-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_ROOT_DIR}			
-		
-  DEPENDS libcoro
-
-)
+					PREFIX libcoro_examples
+					SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/examples"
+					BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/libcoro_examples"
+					CMAKE_CACHE_ARGS
+						-Dlibcoro_DIR:PATH=${CMAKE_INSTALL_PREFIX}/../libcoro/lib/cmake
+						-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>
+						-DLIBCORO_FEATURE_TLS:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_TLS}>,ON,OFF>
+						${CARES_DIRS}
+						${OpenSSL_DIRS}
+					INSTALL_COMMAND ""			
+					STEP_TARGETS configure build	
+					DEPENDS libcoro
+					)
 
 
