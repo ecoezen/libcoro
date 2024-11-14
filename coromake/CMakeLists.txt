@@ -34,6 +34,8 @@ include(compiler.cmake)
 
 include(GNUInstallDirs)
 include(GenerateExportHeader)
+message(STATUS "COROLIB_SOURCE_ROOT_DIR: ${COROLIB_SOURCE_ROOT_DIR}")
+message(STATUS "c-ares_DIR: ${c-ares_DIR}")
 
 if (NOT "$ENV{version}" STREQUAL "")
     set(PROJECT_VERSION "$ENV{version}" CACHE INTERNAL "Copied from environment variable")
@@ -43,7 +45,7 @@ endif()
 set(BUILD_SHARED_LIBS ${LIBCORO_BUILD_SHARED_LIBS} CACHE INTERNAL "")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ${LIBCORO_BUILD_SHARED_LIBS} CACHE INTERNAL "")
 
-if(NOT DEFINED COROLIB_SOURCE_ROOT_DIR OR ${COROLIB_SOURCE_ROOT_DIR} STREQUAL "")
+if(NOT DEFINED COROLIB_SOURCE_ROOT_DIR OR "${COROLIB_SOURCE_ROOT_DIR}" STREQUAL "")
 	message(FATAL_ERROR "COROLIB_SOURCE_ROOT_DIR not defined or empty")
 endif()
 
@@ -178,6 +180,7 @@ set(LIBCORO_NETWORK_TLS_SOURCE_FILES
 										${LIBCORO_NETWORK_TLS_STATUS_FILES}	)
 
 
+
 if(LIBCORO_FEATURE_NETWORKING)	
 
     find_package(c-ares CONFIG REQUIRED)
@@ -282,6 +285,8 @@ install(EXPORT ${PROJECT_NAME}-targets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake
 
 )
+
+
 
 # Generate and install CMake configuration files
 include(CMakePackageConfigHelpers)

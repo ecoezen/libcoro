@@ -51,7 +51,7 @@ jobs:
                     ninja
             -   name: Test
                 run: |
-                    cd Release
+                    cd Release/libcoro_test
                     ctest -VV
     ci-ubuntu-22-04-gplusplus:
         name: ci-ubuntu-22.04-g++

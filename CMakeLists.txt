@@ -41,52 +41,79 @@ message("${PROJECT_NAME} LIBCORO_BUILD_SHARED_LIBS     = ${LIBCORO_BUILD_SHARED_
 
 if(LIBCORO_FEATURE_NETWORKING)
 
+set(ass $<$<BOOL:CMAKE_CONFIGURATION_TYPES>:--config $<CONFIG>>)
+# A helper function to evaluate the generator expression in a safe context
+function(debug_expand_generator_expression expr)
+    # We will force evaluation of the generator expression by assigning it to a temporary variable
+    set(expanded_value ${expr})
+    message(STATUS "Expanded generator expression: ${expanded_value}")
+endfunction()
+
+# Now, call this function to debug the expansion of your generator expression
+debug_expand_generator_expression($<$<BOOL:CMAKE_CONFIGURATION_TYPES>:--config $<CONFIG>>)
+
 ExternalProject_Add(c-ares
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/c-ares
-    GIT_REPOSITORY "https://github.com/c-ares/c-ares.git"
-    GIT_TAG "main"
-	GIT_SHALLOW TRUE
-    CMAKE_ARGS
-        -DCARES_SHARED:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,ON,OFF>
-        -DCARES_STATIC:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,OFF,ON>
-        -DCARES_STATIC_PIC:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,ON,OFF>
-        -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
-        -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}/c-ares
+					PREFIX ${CMAKE_CURRENT_BINARY_DIR}/c-ares
+					GIT_REPOSITORY "https://github.com/c-ares/c-ares.git"
+					GIT_TAG "main"
+					GIT_SHALLOW TRUE
+					CMAKE_ARGS
+						-DCARES_SHARED:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,ON,OFF>
+						-DCARES_STATIC:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,OFF,ON>
+						-DCARES_STATIC_PIC:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,ON,OFF>
+						-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+						-DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}/c-ares/c-ares
+					#CONFIGURE_COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR} <SOURCE_DIR> 
+					#BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> $<$<BOOL:CMAKE_CONFIGURATION_TYPES>:--config $<CONFIG>> 
+					#INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target install $<$<BOOL:CMAKE_CONFIGURATION_TYPES>:--config $<CONFIG>> 
+					STEP_TARGETS download configure build install
 
-    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target all --config ${CMAKE_BUILD_TYPE} 
-    INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target install --config ${CMAKE_BUILD_TYPE} 
-	STEP_TARGETS download configure build install
-    UPDATE_COMMAND ""
-
-    LOG_DOWNLOAD ON
-    LOG_CONFIGURE ON
-    LOG_BUILD ON
-    LOG_INSTALL ON
-	LOG_OUTPUT_ON_FAILURE TRUE
+					LOG_DOWNLOAD ON
+					LOG_CONFIGURE ON
+					LOG_BUILD ON
+					LOG_INSTALL ON
+					LOG_OUTPUT_ON_FAILURE TRUE
 )
 
+set(CARES_DEPENDENCY c-ares)
+set(CARES_DIRS "-Dc-ares_DIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/c-ares/c-ares/lib/cmake/c-ares")
+
+
+
+set(_CMAKE_ARGS_OPENSSL_ROOT_DIR "")
+if(LIBCORO_FEATURE_TLS)
+
+	find_package(OpenSSL REQUIRED)
+
+	set(OpenSSL_DIRS "-DOpenSSL_DIR=${OpenSSL_DIR}")
+	
+	if (OPENSSL_ROOT_DIR)
+	  list(APPEND OpenSSL_DIRS "-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_ROOT_DIR}")
+	endif()
 endif()
 
-# if OPENSSL_ROOT_DIR is set, propagate that hint path to the external projects with OpenSSL dependency.https://github.com/c-ares/c-ares.git
-set(_CMAKE_ARGS_OPENSSL_ROOT_DIR "")
-if (OPENSSL_ROOT_DIR)
-  set(_CMAKE_ARGS_OPENSSL_ROOT_DIR "-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_ROOT_DIR}")
 endif()
+
+
 
 ExternalProject_Add(libcoro
-  PREFIX libcoro
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coromake"
-  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/libcoro"
-  INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config $<CONFIG>
-  CMAKE_CACHE_ARGS
-  		-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
-		-DLIBCORO_BUILD_SHARED_LIBS:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,ON,OFF>
-		-DCOROLIB_SOURCE_ROOT_DIR:STRING=${CMAKE_CURRENT_SOURCE_DIR}
-		-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>
-        -Dc-ares_DIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/c-ares/lib/cmake/c-ares
-        ${_CMAKE_ARGS_OPENSSL_ROOT_DIR}
-		
-  #DEPENDS $<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,c-ares>
+					PREFIX libcoro
+					SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/coromake"
+					BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/libcoro"
+					#INSTALL_COMMAND ""
+					CMAKE_CACHE_ARGS
+						-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+						-DLIBCORO_BUILD_SHARED_LIBS:BOOL=$<IF:$<BOOL:${LIBCORO_BUILD_SHARED_LIBS}>,ON,OFF>
+						-DCOROLIB_SOURCE_ROOT_DIR:PATH=${CMAKE_CURRENT_SOURCE_DIR}
+						-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>
+						-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>
+						-DLIBCORO_FEATURE_TLS:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_TLS}>,ON,OFF>				
+						${CARES_DIRS}
+						${OpenSSL_DIRS}
+					STEP_TARGETS configure build install
+					
+						
+				  DEPENDS ${CARES_DEPENDENCY}
 
 )
 
@@ -97,11 +124,13 @@ ExternalProject_Add(libcoro_test
   INSTALL_COMMAND ""
   CMAKE_CACHE_ARGS
 			-Dlibcoro_DIR:PATH=${CMAKE_INSTALL_PREFIX}/../libcoro/lib/cmake
-			-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>		
+			-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>
+			-DLIBCORO_FEATURE_TLS:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_TLS}>,ON,OFF>
+			-Dc-ares_DIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/c-ares/c-ares/lib/cmake/c-ares
+			-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_ROOT_DIR}			
   DEPENDS libcoro
 )
 
-message(STATUS "${CMAKE_INSTALL_PREFIX}/lib/cmake ----")
 
 ExternalProject_Add(libcoro_examples
   PREFIX libcoro_examples
@@ -111,7 +140,9 @@ ExternalProject_Add(libcoro_examples
   CMAKE_CACHE_ARGS
 			-Dlibcoro_DIR:PATH=${CMAKE_INSTALL_PREFIX}/../libcoro/lib/cmake
 			-DLIBCORO_FEATURE_NETWORKING:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_NETWORKING}>,ON,OFF>
-
+			-DLIBCORO_FEATURE_TLS:BOOL=$<IF:$<BOOL:${LIBCORO_FEATURE_TLS}>,ON,OFF>
+			-Dc-ares_DIR:PATH=${CMAKE_CURRENT_BINARY_DIR}/c-ares/c-ares/lib/cmake/c-ares
+			-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_ROOT_DIR}			
 		
   DEPENDS libcoro
 

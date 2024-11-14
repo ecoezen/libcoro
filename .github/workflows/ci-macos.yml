@@ -41,5 +41,5 @@ jobs:
                     cmake --build . --config Release
             -   name: Test
                 run: |
-                    cd Release
+                    cd Release/libcoro_test
                     ctest --build-config Release -VV
