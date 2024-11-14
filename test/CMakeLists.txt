@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.12)
+
 project(libcoro_test)
 
-set(LIBCORO_TEST_SOURCE_FILES
+find_package(libcoro CONFIG REQUIRED)
+
+include(CTest)
+
+set(libcoro_TEST_SOURCE_FILES
     test_event.cpp
     test_generator.cpp
     test_latch.cpp
@@ -17,13 +22,13 @@ set(LIBCORO_TEST_SOURCE_FILES
     catch_amalgamated.cpp
 )
 
-if(LIBCORO_FEATURE_NETWORKING)
-    list(APPEND LIBCORO_TEST_SOURCE_FILES
+if(libcoro::libcoro_FEATURE_NETWORKING)
+    list(APPEND libcoro_TEST_SOURCE_FILES
         net/test_ip_address.cpp
     )
 
     # These tests require coro::io_scheduler
-    list(APPEND LIBCORO_TEST_SOURCE_FILES
+    list(APPEND libcoro_TEST_SOURCE_FILES
         net/test_dns_resolver.cpp
         net/test_tcp_server.cpp
         net/test_tls_server.cpp
@@ -31,17 +36,17 @@ if(LIBCORO_FEATURE_NETWORKING)
     )
 endif()
 
-if(LIBCORO_FEATURE_NETWORKING)
-    list(APPEND LIBCORO_TEST_SOURCE_FILES
+if(libcoro::libcoro_FEATURE_NETWORKING)
+    list(APPEND libcoro_TEST_SOURCE_FILES
         bench.cpp
         test_io_scheduler.cpp
     )
 endif()
 
-add_executable(${PROJECT_NAME} main.cpp ${LIBCORO_TEST_SOURCE_FILES})
+add_executable(${PROJECT_NAME} main.cpp ${libcoro_TEST_SOURCE_FILES})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE libcoro)
+target_link_libraries(${PROJECT_NAME} PRIVATE libcoro::libcoro)
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     target_compile_options(${PROJECT_NAME} PRIVATE
@@ -67,10 +72,10 @@ else()
     message(FATAL_ERROR "Unsupported compiler.")
 endif()
 
-if(LIBCORO_CODE_COVERAGE)
+if(libcoro::libcoro_CODE_COVERAGE)
     target_link_libraries(${PROJECT_NAME} PRIVATE gcov)
     target_compile_options(${PROJECT_NAME} PRIVATE --coverage)
 endif()
 
-add_test(NAME libcoro_tests COMMAND ${PROJECT_NAME})
-set_tests_properties(libcoro_tests PROPERTIES ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<$<BOOL:${WIN32}>:$<TARGET_FILE_DIR:libcoro>>")
+add_test(NAME libcoro::libcoro_tests COMMAND ${PROJECT_NAME})
+set_tests_properties(libcoro::libcoro_tests PROPERTIES ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<$<BOOL:${WIN32}>:$<TARGET_FILE_DIR:libcoro::libcoro>>")
